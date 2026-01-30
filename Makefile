@@ -1,6 +1,4 @@
-.PHONY: help
-help: ## print make targets 
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+APP_NAME ?= app
 
 .PHONY: go-install-air
 go-install-air: ## Installs the air build reload system using 'go install'
@@ -20,29 +18,60 @@ get-install-tailwindcss: ## Installs the tailwindcss cli
 	chmod +x tailwindcss-linux-x64
 	mv tailwindcss-linux-x64 tailwindcss
 
+.PHONY: vet
+vet:
+	go vet ./...
+
+.PHONY: staticcheck
+staticcheck:
+	staticcheck ./...
+
+.PHONY: test
+test:
+	go test -race -v -timeout 30s ./...
+
 .PHONY: tailwind-watch
-tailwind-watch: ## compile tailwindcss and watch for changes
-	./tailwindcss -i ./static/css/custom.css -o ./static/css/style.css --watch
+tailwind-watch:
+	tailwindcss -i ./static/css/input.css -o ./static/css/style.css --watch
 
 .PHONY: tailwind-build
-tailwind-build: ## one-time compile tailwindcss styles
-	./tailwindcss -i ./static/css/custom.css -o ./static/css/style.css
-
-.PHONY: build
-build: ## compile tailwindcss and templ files and build the project
-	./tailwindcss -i ./static/css/custom.css -o ./static/css/style.css
-	templ generate
-	go build -o ./tmp/$(APP_NAME) ./cmd/$(APP_NAME)/main.go
-
-.PHONY: watch
-watch: ## build and watch the project with air
-	go build -o ./tmp/$(APP_NAME) ./cmd/$(APP_NAME)/main.go && air
-
-.PHONY: templ-generate
-templ-generate:
-	templ generate
+tailwind-build:
+	tailwindcss -i ./static/css/input.css -o ./static/css/style.min.css --minify
 
 .PHONY: templ-watch
 templ-watch:
 	templ generate --watch
 
+.PHONY: templ-generate
+templ-generate:
+	templ generate
+	
+.PHONY: dev
+dev:
+	go build -o ./tmp/main ./cmd/main.go && air
+
+.PHONY: build
+build:
+	make tailwind-build
+	make templ-generate
+	go build -ldflags "-X main.Environment=production" -o ./bin/$(APP_NAME) ./cmd/main.go
+
+.PHONY: docker-build
+docker-build:
+	docker-compose -f ./dev/docker-compose.yml build
+
+.PHONY: docker-up
+docker-up:
+	docker-compose -f ./dev/docker-compose.yml up
+
+.PHONY: docker-dev
+docker-dev:
+	docker-compose -f ./dev/docker-compose.yml -f ./dev/docker-compose.dev.yml up
+
+.PHONY: docker-down
+docker-down:
+	docker-compose -f ./dev/docker-compose.yml down
+
+.PHONY: docker-clean
+docker-clean:
+	docker-compose -f ./dev/docker-compose.yml down -v --rmi all

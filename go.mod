@@ -1,3 +1,3 @@
-module github.com/Jakob-Kaae/Go.Demo
+module gotth-demo
 
 go 1.22.2
