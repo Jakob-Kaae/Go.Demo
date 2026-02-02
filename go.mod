@@ -1,8 +1,3 @@
-module gotth-demo
+module github.com/Jakob-Kaae/Go.Demo
 
-go 1.22.2
-
-require (
-	github.com/go-chi/chi/v5 v5.2.4
-	github.com/kelseyhightower/envconfig v1.4.0
-)
+go 1.25.6
